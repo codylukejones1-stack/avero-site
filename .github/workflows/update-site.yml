@@ -27,7 +27,6 @@ jobs:
     env:
       AVERO_SOURCE_REPOSITORY: ${{ vars.AVERO_SOURCE_REPOSITORY || 'codylukejones1-stack/avero.' }}
       AVERO_AUTOMATION_ENABLED: '0'
-      PRIVATE_STATE_DIR: ${{ runner.temp }}/avero-private-state
     steps:
       - name: Validate private-source connection
         env:
@@ -35,6 +34,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          echo "PRIVATE_STATE_DIR=$RUNNER_TEMP/avero-private-state" >> "$GITHUB_ENV"
           if [[ ! "$AVERO_SOURCE_REPOSITORY" =~ ^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+$ ]] || [[ -z "$SOURCE_TOKEN" ]]; then
             echo '::error::Check the private source repository and add the AVERO_SOURCE_TOKEN Actions secret. No credential values should be entered in public files or logs.'
             exit 1
