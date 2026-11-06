@@ -10,22 +10,24 @@ published here. Website visitors receive compiled JavaScript, as on other sites.
 
 1. Keep this deployment repository **public** and the application repository
    **private**. Never copy the application's folders or Git history here.
-2. In this repository's **Settings > Secrets and variables > Actions > Variables**,
-   add `AVERO_SOURCE_REPOSITORY` with value `codylukejones1-stack/avero.`.
-3. In your GitHub account settings, create a fine-grained personal access token
+2. In your GitHub account settings, create a fine-grained personal access token
    restricted to **only** `codylukejones1-stack/avero.`. Grant repository **Contents: Read
    and write** so the workflow can read source and append durable private state.
    No account billing, administration, or workflow-write permission is needed.
    Store its value only in this repository's **Actions secrets**, named
    `AVERO_SOURCE_TOKEN`. Never put the token in a file, chat, issue, or public log.
    Track its expiry and replace the secret before it expires.
-4. Run **Actions > Update AVERO website > Run workflow**. The first run saves
+3. Run **Actions > Update AVERO website > Run workflow**. The first run saves
    website files on `gh-pages`. If its final Pages request fails before Pages
    setup, that is not confirmation of a live website.
-5. Choose **Settings > Pages > Deploy from a branch > gh-pages > / (root)**,
+4. Choose **Settings > Pages > Deploy from a branch > gh-pages > / (root)**,
    then rerun. Use the URL GitHub reports after a successful build.
 
 ## Updates and privacy
+
+The private source repository is already set to `codylukejones1-stack/avero.`. To use
+another source repository, set Actions repository variable
+`AVERO_SOURCE_REPOSITORY`; no variable entry is needed for this prepared setup.
 
 The scheduled public workflow checks approximately every 15 minutes and checks
 out the private source repository's latest `main`. GitHub may delay or skip

@@ -25,7 +25,7 @@ jobs:
       contents: write
       pages: write
     env:
-      AVERO_SOURCE_REPOSITORY: ${{ vars.AVERO_SOURCE_REPOSITORY }}
+      AVERO_SOURCE_REPOSITORY: ${{ vars.AVERO_SOURCE_REPOSITORY || 'codylukejones1-stack/avero.' }}
       AVERO_AUTOMATION_ENABLED: '0'
       PRIVATE_STATE_DIR: ${{ runner.temp }}/avero-private-state
     steps:
@@ -36,7 +36,7 @@ jobs:
         run: |
           set -euo pipefail
           if [[ ! "$AVERO_SOURCE_REPOSITORY" =~ ^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+$ ]] || [[ -z "$SOURCE_TOKEN" ]]; then
-            echo '::error::Set AVERO_SOURCE_REPOSITORY and the private AVERO_SOURCE_TOKEN Actions secret. No credential values should be entered in public files or logs.'
+            echo '::error::Check the private source repository and add the AVERO_SOURCE_TOKEN Actions secret. No credential values should be entered in public files or logs.'
             exit 1
           fi
           if [[ "$AVERO_SOURCE_REPOSITORY" == "$GITHUB_REPOSITORY" ]]; then
@@ -52,7 +52,7 @@ jobs:
       - name: Check out private application source
         uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
         with:
-          repository: ${{ vars.AVERO_SOURCE_REPOSITORY }}
+          repository: ${{ env.AVERO_SOURCE_REPOSITORY }}
           ref: main
           path: source
           token: ${{ secrets.AVERO_SOURCE_TOKEN }}
