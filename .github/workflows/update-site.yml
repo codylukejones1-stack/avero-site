@@ -1,0 +1,97 @@
+name: Update AVERO website
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  schedule:
+    - cron: '7,22,37,52 * * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avero-private-source-public-website
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    # Standard public-repository compute is free. Never run this job in a
+    # private repository or switch it to a paid/larger runner.
+    if: ${{ github.event.repository.private == false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    permissions:
+      contents: write
+      pages: write
+    env:
+      AVERO_SOURCE_REPOSITORY: ${{ vars.AVERO_SOURCE_REPOSITORY }}
+      AVERO_AUTOMATION_ENABLED: '0'
+      PRIVATE_STATE_DIR: ${{ runner.temp }}/avero-private-state
+    steps:
+      - name: Validate private-source connection
+        env:
+          SOURCE_TOKEN: ${{ secrets.AVERO_SOURCE_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          if [[ ! "$AVERO_SOURCE_REPOSITORY" =~ ^[A-Za-z0-9][A-Za-z0-9-]*/[A-Za-z0-9_.-]+$ ]] || [[ -z "$SOURCE_TOKEN" ]]; then
+            echo '::error::Set AVERO_SOURCE_REPOSITORY and the private AVERO_SOURCE_TOKEN Actions secret. No credential values should be entered in public files or logs.'
+            exit 1
+          fi
+          if [[ "$AVERO_SOURCE_REPOSITORY" == "$GITHUB_REPOSITORY" ]]; then
+            echo '::error::The public website repository must be separate from the private source repository.'
+            exit 1
+          fi
+      - name: Check out public website repository
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          path: website
+          token: ${{ github.token }}
+          persist-credentials: true
+      - name: Check out private application source
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+        with:
+          repository: ${{ vars.AVERO_SOURCE_REPOSITORY }}
+          ref: main
+          path: source
+          token: ${{ secrets.AVERO_SOURCE_TOKEN }}
+          persist-credentials: true
+      - uses: actions/setup-python@a26af69be951a213d495a4c3e4e4022e16d87065 # v5
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4
+        with:
+          node-version: '22'
+      # No Actions artifacts/cache services. Source, models, caches and ledger
+      # remain private. Only the compiled website and published JSON are public.
+      - name: Build from private source and preserve private history
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          VITE_PUBLIC_SITE: 'true'
+          VITE_STATIC_SNAPSHOT: 'false'
+        shell: bash
+        run: |
+          set -euo pipefail
+          umask 077
+          private_step() {
+            local stage="$1"
+            shift
+            # Unexpected tracebacks can contain private source lines. Keep all
+            # command output on this ephemeral runner; never upload these logs.
+            if ! "$@" >"$RUNNER_TEMP/avero-${stage}.log" 2>&1; then
+              echo "::error::AVERO ${stage} failed. Private build diagnostics were not published. Check the source connection and rerun."
+              exit 1
+            fi
+          }
+          private_step dependencies python -m pip install --disable-pip-version-check -r source/backend/requirements.lock.txt
+          private_step restore python source/deployment/state_store.py restore --repository "$GITHUB_WORKSPACE/source" --state-dir "$PRIVATE_STATE_DIR"
+          private_step data python source/deployment/export_site.py --state-dir "$PRIVATE_STATE_DIR" --output "$GITHUB_WORKSPACE/source/frontend/public/snapshot.json" --publish-pregame
+          private_step save python source/deployment/state_store.py save --repository "$GITHUB_WORKSPACE/source" --state-dir "$PRIVATE_STATE_DIR"
+          private_step browser-dependencies npm ci --prefix source/frontend
+          private_step browser-build npm run build --prefix source/frontend
+          if ! python source/deployment/publish_pages.py --repository "$GITHUB_WORKSPACE/website" --site-dir "$GITHUB_WORKSPACE/source/frontend/dist" --github-repository "$GITHUB_REPOSITORY" >"$RUNNER_TEMP/avero-pages.log" 2>&1; then
+            echo '::error::Website publication was not confirmed. In the public website repository, check Settings > Pages > Deploy from a branch > gh-pages / (root), then rerun. Private diagnostics were not published.'
+            exit 1
+          fi
+          echo 'AVERO website files saved and Pages build requested. Check Settings > Pages for the actual deployment result and URL.'
