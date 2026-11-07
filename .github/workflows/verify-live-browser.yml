@@ -26,11 +26,11 @@ jobs:
           export AVERO_PLAYWRIGHT="$RUNNER_TEMP/avero-live-browser/node_modules/playwright"
           export AVERO_CHROME="$(command -v google-chrome || command -v chromium || true)"
           if [ -z "$AVERO_CHROME" ]; then "$RUNNER_TEMP/avero-live-browser/node_modules/.bin/playwright" install --with-deps chromium; fi
-          node - <<'JS'
+          xvfb-run -a node - <<'JS'
           const {chromium}=require(process.env.AVERO_PLAYWRIGHT);
           const assert=require('node:assert/strict');
           (async()=>{
-            const browser=await chromium.launch({headless:true,...(process.env.AVERO_CHROME?{executablePath:process.env.AVERO_CHROME}:{}),args:['--no-sandbox']});
+            const browser=await chromium.launch({headless:false,...(process.env.AVERO_CHROME?{executablePath:process.env.AVERO_CHROME}:{}),args:['--no-sandbox']});
             let page,stage='open',errors=[];
             const diagnostic={requests:[],responses:[],failures:[],console:[]};
             try{
@@ -41,33 +41,6 @@ jobs:
               page.on('requestfailed',request=>diagnostic.failures.push({url:request.url(),error:request.failure()?.errorText}));
               page.on('console',message=>{if(message.type()==='error'&&diagnostic.console.length<10)diagnostic.console.push(message.text().slice(0,500));});
               const isProvider=response=>new URL(response.url()).hostname==='site.api.espn.com';
-              const cdp=await page.context().newCDPSession(page);
-              await cdp.send('Network.enable');
-              cdp.on('Network.responseReceivedExtraInfo',event=>{
-                const headers=event.headers||{};
-                if(event.statusCode>=400||headers['access-control-allow-origin']||headers['Access-Control-Allow-Origin'])
-                  console.log('::notice title=Browser response headers::'+JSON.stringify({status:event.statusCode,cors:headers['access-control-allow-origin']||headers['Access-Control-Allow-Origin'],server:headers.server||headers.Server}));
-              });
-              await page.goto('https://codylukejones1-stack.github.io/avero-site/?feed-check='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
-              await page.getByText('App v0.5.0',{exact:true}).waitFor({timeout:60000});
-              const candidates=[
-                ['default-cache','https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2026&seasontype=2&week=9&limit=1000'],
-                ['without-limit','https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2026&seasontype=2&week=9'],
-                ['public-web','https://site.web.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2026&seasontype=2&week=9&limit=1000'],
-                ['web-scoreboard','https://site.web.api.espn.com/apis/fittwo/v3/sports/football/nfl/scoreboard?region=us&lang=en&contentorigin=espn&limit=1000&dates=2026&seasontype=2&week=9'],
-                ['current-week','https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard'],
-                ['summary','https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=401873037'],
-              ];
-              for(const [name,url]of candidates){
-                const result=await page.evaluate(async url=>{
-                  try{const r=await fetch(url,{mode:'cors',credentials:'omit',signal:AbortSignal.timeout(12000)});const data=await r.json();return{status:r.status,events:data.events?.length,eventId:data.header?.id};}
-                  catch(error){return{error:String(error)}}
-                },url);
-                console.log('::notice title=Public feed '+name+'::'+JSON.stringify(result));
-              }
-              const direct=await page.context().request.get(candidates[0][1],{headers:{Origin:'https://codylukejones1-stack.github.io'},timeout:15000}).then(async r=>({status:r.status(),cors:r.headers()['access-control-allow-origin'],body:(await r.text()).slice(0,200)})).catch(error=>({error:String(error)}));
-              console.log('::notice title=Direct public response::'+JSON.stringify(direct));
-              throw new Error('Public connection diagnostics completed; see per-endpoint notices');
               const scorePromise=page.waitForResponse(response=>isProvider(response)&&new URL(response.url()).pathname.endsWith('/scoreboard'),{timeout:60000});
               scorePromise.catch(()=>{});
               await page.goto('https://codylukejones1-stack.github.io/avero-site/?live-check='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
