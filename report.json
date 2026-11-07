@@ -1,0 +1,44 @@
+{
+  "scoreboard-week": {
+    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?year=2026&seasontype=2&week=9&limit=1000",
+    "fetched_at": "2026-11-07T01:05:14.404038+00:00",
+    "status": 200,
+    "cors_allow_origin": "*",
+    "content_type": "application/json;charset=UTF-8",
+    "response_sha256": "637aaf57551a3e6bbfea69cda76d6482d47887d7081104d45c0019ae6ccfbb26",
+    "events": 15
+  },
+  "scoreboard-dates": {
+    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=20261103-20261109&limit=1000",
+    "fetched_at": "2026-11-07T01:05:14.599831+00:00",
+    "status": 400,
+    "error_type": "HTTPError"
+  },
+  "scoreboard-postseason": {
+    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?year=2025&seasontype=3&week=5&limit=1000",
+    "fetched_at": "2026-11-07T01:05:14.705499+00:00",
+    "status": 200,
+    "cors_allow_origin": "*",
+    "content_type": "application/json;charset=UTF-8",
+    "response_sha256": "d0b7c1d790cfa9721ccd5f8d4d5bafaadb09697286709bfb74b4f200f06e9b8d",
+    "events": 0
+  },
+  "scoreboard-current": {
+    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+    "fetched_at": "2026-11-07T01:05:14.804512+00:00",
+    "status": 200,
+    "cors_allow_origin": "*",
+    "content_type": "application/json;charset=UTF-8",
+    "response_sha256": "8d1c45a3c4d4401661052dca0e7dfe905cf524f6a87da27b17dc073c3cba0283",
+    "events": 15
+  },
+  "summary": {
+    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=401873037",
+    "fetched_at": "2026-11-07T01:05:14.842068+00:00",
+    "status": 200,
+    "cors_allow_origin": "*",
+    "content_type": "application/json;charset=UTF-8",
+    "response_sha256": "a3a0e877bd8269b3e8a6f1eb91fff8d1b40e051ee820b948613df071908ca6cb",
+    "events": 0
+  }
+}
