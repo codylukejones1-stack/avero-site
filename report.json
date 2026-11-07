@@ -1,44 +1,80 @@
 {
   "scoreboard-week": {
     "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?year=2026&seasontype=2&week=9&limit=1000",
-    "fetched_at": "2026-11-07T01:05:14.404038+00:00",
+    "fetched_at": "2026-11-07T01:07:50.450182+00:00",
     "status": 200,
     "cors_allow_origin": "*",
     "content_type": "application/json;charset=UTF-8",
-    "response_sha256": "637aaf57551a3e6bbfea69cda76d6482d47887d7081104d45c0019ae6ccfbb26",
+    "response_sha256": "5949a110237a20ef7c64f9d62767c7470cc44cf7083f8af529cf12ff6ccabe33",
     "events": 15
   },
   "scoreboard-dates": {
     "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=20261103-20261109&limit=1000",
-    "fetched_at": "2026-11-07T01:05:14.599831+00:00",
+    "fetched_at": "2026-11-07T01:07:50.810488+00:00",
     "status": 400,
     "error_type": "HTTPError"
   },
   "scoreboard-postseason": {
     "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?year=2025&seasontype=3&week=5&limit=1000",
-    "fetched_at": "2026-11-07T01:05:14.705499+00:00",
+    "fetched_at": "2026-11-07T01:07:51.124729+00:00",
     "status": 200,
     "cors_allow_origin": "*",
     "content_type": "application/json;charset=UTF-8",
     "response_sha256": "d0b7c1d790cfa9721ccd5f8d4d5bafaadb09697286709bfb74b4f200f06e9b8d",
     "events": 0
   },
-  "scoreboard-current": {
-    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
-    "fetched_at": "2026-11-07T01:05:14.804512+00:00",
+  "scoreboard-year-query": {
+    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2026&seasontype=2&week=9&limit=1000",
+    "fetched_at": "2026-11-07T01:07:51.339843+00:00",
     "status": 200,
     "cors_allow_origin": "*",
     "content_type": "application/json;charset=UTF-8",
-    "response_sha256": "8d1c45a3c4d4401661052dca0e7dfe905cf524f6a87da27b17dc073c3cba0283",
+    "response_sha256": "0f54f6c4c6a2b8469123a194e17e73668a656e37a0f6516327a61d29324429f7",
+    "events": 15
+  },
+  "scoreboard-prior-year": {
+    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2025&seasontype=2&week=9&limit=1000",
+    "fetched_at": "2026-11-07T01:07:51.587482+00:00",
+    "status": 200,
+    "cors_allow_origin": "*",
+    "content_type": "application/json;charset=UTF-8",
+    "response_sha256": "022d2e8cfc061386008e358f0d5c4a3f706a3410639b43ccb8eb9acce3d4d3e7",
+    "events": 14
+  },
+  "scoreboard-prior-postseason": {
+    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2025&seasontype=3&week=5&limit=1000",
+    "fetched_at": "2026-11-07T01:07:51.734104+00:00",
+    "status": 200,
+    "cors_allow_origin": "*",
+    "content_type": "application/json;charset=UTF-8",
+    "response_sha256": "24d964f8b02580546100bf62c10f5e0e0819f86855b541b6be645159923b361d",
+    "events": 1
+  },
+  "scoreboard-prior-postseason-four": {
+    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard?dates=2025&seasontype=3&week=4&limit=1000",
+    "fetched_at": "2026-11-07T01:07:51.956316+00:00",
+    "status": 200,
+    "cors_allow_origin": "*",
+    "content_type": "application/json;charset=UTF-8",
+    "response_sha256": "68cfbf0710cc463d14eb69863bd7f3f34e13192fc332c301ef5e204dba66f720",
+    "events": 1
+  },
+  "scoreboard-current": {
+    "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/scoreboard",
+    "fetched_at": "2026-11-07T01:07:52.153386+00:00",
+    "status": 200,
+    "cors_allow_origin": "*",
+    "content_type": "application/json;charset=UTF-8",
+    "response_sha256": "0f54f6c4c6a2b8469123a194e17e73668a656e37a0f6516327a61d29324429f7",
     "events": 15
   },
   "summary": {
     "url": "https://site.api.espn.com/apis/site/v2/sports/football/nfl/summary?event=401873037",
-    "fetched_at": "2026-11-07T01:05:14.842068+00:00",
+    "fetched_at": "2026-11-07T01:07:52.340037+00:00",
     "status": 200,
     "cors_allow_origin": "*",
     "content_type": "application/json;charset=UTF-8",
-    "response_sha256": "a3a0e877bd8269b3e8a6f1eb91fff8d1b40e051ee820b948613df071908ca6cb",
+    "response_sha256": "99cb86046f07e8d29c30c25c5dcdc9a6b81fa73ab05a754b1cd44b38d6b52bb1",
     "events": 0
   }
 }
