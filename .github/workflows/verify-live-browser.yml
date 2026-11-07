@@ -1,0 +1,78 @@
+name: Verify published live scores in Chrome
+on:
+  push:
+    branches: [live-browser-050]
+    paths: ['.github/workflows/verify-live-browser.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  browser:
+    if: ${{ github.event.repository.private == false }}
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Install browser test library without cache or artifacts
+        run: |
+          mkdir -p "$RUNNER_TEMP/avero-live-browser"
+          npm install --prefix "$RUNNER_TEMP/avero-live-browser" --no-package-lock --no-audit --no-fund playwright@1.56.1
+      - name: Check the actual public website and ESPN browser responses
+        shell: bash
+        run: |
+          set -euo pipefail
+          export AVERO_PLAYWRIGHT="$RUNNER_TEMP/avero-live-browser/node_modules/playwright"
+          export AVERO_CHROME="$(command -v google-chrome || command -v chromium || true)"
+          if [ -z "$AVERO_CHROME" ]; then "$RUNNER_TEMP/avero-live-browser/node_modules/.bin/playwright" install --with-deps chromium; fi
+          node - <<'JS'
+          const {chromium}=require(process.env.AVERO_PLAYWRIGHT);
+          const assert=require('node:assert/strict');
+          (async()=>{
+            const browser=await chromium.launch({headless:true,...(process.env.AVERO_CHROME?{executablePath:process.env.AVERO_CHROME}:{}),args:['--no-sandbox']});
+            try{
+              const page=await browser.newPage({viewport:{width:1440,height:1100},timezoneId:'America/Chicago'});
+              const errors=[];page.on('pageerror',error=>errors.push(error.message));
+              const isProvider=response=>new URL(response.url()).hostname==='site.api.espn.com';
+              const scorePromise=page.waitForResponse(response=>isProvider(response)&&new URL(response.url()).pathname.endsWith('/scoreboard'),{timeout:60000});
+              await page.goto('https://codylukejones1-stack.github.io/avero-site/?live-check='+Date.now(),{waitUntil:'domcontentloaded',timeout:60000});
+              await page.getByText('App v0.5.0',{exact:true}).waitFor({timeout:60000});
+              const scoreResponse=await scorePromise;
+              assert.equal(scoreResponse.status(),200);
+              const cors=(await scoreResponse.allHeaders())['access-control-allow-origin'];
+              assert.ok(cors==='*'||cors==='https://codylukejones1-stack.github.io');
+              assert.equal(scoreResponse.request().method(),'GET');
+              const requestHeaders=await scoreResponse.request().allHeaders();
+              assert.equal(requestHeaders.authorization,undefined);
+              assert.equal(requestHeaders['content-type'],undefined);
+              const scoreboard=await scoreResponse.json();
+              const event=scoreboard.events.find(event=>(event.status||event.competitions?.[0]?.status)?.type?.completed===true);
+              assert.ok(event,'A completed NFL game is required for the published-stat check');
+              const competition=event.competitions[0],away=competition.competitors.find(team=>team.homeAway==='away'),home=competition.competitors.find(team=>team.homeAway==='home');
+              await page.getByText(/^Scores via ESPN/).first().waitFor({timeout:60000});
+              const card=page.locator('.game-card').filter({hasText:away.team.displayName}).filter({hasText:home.team.displayName});
+              await card.locator('[aria-label^="Final score:"]').waitFor({timeout:60000});
+              const summaryPromise=page.waitForResponse(response=>isProvider(response)&&new URL(response.url()).pathname.endsWith('/summary')&&new URL(response.url()).searchParams.get('event')===event.id,{timeout:60000});
+              await card.click();
+              await page.getByRole('tab',{name:'Live stats',exact:true}).click();
+              const summaryResponse=await summaryPromise;
+              assert.equal(summaryResponse.status(),200);
+              const summary=await summaryResponse.json();
+              assert.equal(summary.header.id,event.id);
+              const group=summary.boxscore.players.find(team=>team.team.id===away.team.id).statistics.find(group=>group.name==='passing');
+              const athlete=group.athletes.find(row=>row.athlete?.displayName&&Array.isArray(row.stats));
+              assert.ok(athlete,'A source-reported passing row is required');
+              const index=group.keys.indexOf('passingYards');assert.ok(index>=0);
+              const row=page.getByRole('region',{name:'Passing game statistics',exact:true}).getByRole('row').filter({hasText:athlete.athlete.displayName});
+              await row.waitFor({timeout:60000});
+              assert.ok((await row.innerText()).includes(Number(athlete.stats[index]).toLocaleString('en-US')));
+              await page.getByRole('region',{name:'Team game statistics',exact:true}).waitFor({timeout:60000});
+              await page.getByRole('link',{name:'Source: ESPN',exact:true}).waitFor();
+              await page.setViewportSize({width:390,height:844});
+              assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+              assert.deepEqual(errors,[]);
+              console.log('::notice title=Live browser check passed::The published v0.5 website loaded real ESPN scores, player statistics and team totals directly in Chrome with valid CORS and no private credentials.');
+            }finally{await browser.close();}
+          })().catch(error=>{console.error('::error::'+String(error.message).replace(/[\r\n]+/g,' ').slice(0,400));process.exitCode=1;});
+          JS
