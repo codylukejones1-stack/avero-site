@@ -1,0 +1,90 @@
+name: Verify free NFL live feed
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths: ['.github/workflows/check-live-feed.yml']
+
+permissions:
+  contents: read
+
+concurrency:
+  group: avero-live-feed-validation
+  cancel-in-progress: false
+
+jobs:
+  verify:
+    if: ${{ github.event.repository.private == false }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Verify public feed and browser-access headers
+        shell: bash
+        run: |
+          set -euo pipefail
+          python - <<'PY'
+          from pathlib import Path
+          from datetime import datetime,timezone
+          from urllib.request import Request,urlopen
+          from urllib.error import HTTPError,URLError
+          import hashlib,json
+          out=Path('probe-output');out.mkdir()
+          report={}
+          origin='https://codylukejones1-stack.github.io'
+          base='https://site.api.espn.com/apis/site/v2/sports/football/nfl/'
+          def get(name,query,trim=None):
+              url=base+query
+              entry={'url':url,'fetched_at':datetime.now(timezone.utc).isoformat()}
+              try:
+                  request=Request(url,headers={'Accept':'application/json','Origin':origin,'User-Agent':'AVERO/0.5 (NFL scores; https://codylukejones1-stack.github.io/avero-site/)'})
+                  with urlopen(request,timeout=20) as response:
+                      raw=response.read(10000001)
+                      if len(raw)>10000000:raise ValueError('Feed exceeds expected size')
+                      value=json.loads(raw)
+                      entry.update(status=response.status,cors_allow_origin=response.headers.get('Access-Control-Allow-Origin'),content_type=response.headers.get('Content-Type'),response_sha256=hashlib.sha256(raw).hexdigest())
+                  if trim:value={key:value.get(key) for key in trim}
+                  (out/(name+'.json')).write_text(json.dumps(value,separators=(',',':')))
+                  entry['events']=len(value.get('events',[]))
+                  report[name]=entry
+                  return value
+              except HTTPError as exc:entry.update(status=exc.code,error_type='HTTPError')
+              except Exception as exc:entry.update(error_type=type(exc).__name__)
+              report[name]=entry
+              return {}
+          week=get('scoreboard-week','scoreboard?year=2026&seasontype=2&week=9&limit=1000')
+          get('scoreboard-dates','scoreboard?dates=20261103-20261109&limit=1000')
+          get('scoreboard-postseason','scoreboard?year=2025&seasontype=3&week=5&limit=1000')
+          get('scoreboard-current','scoreboard')
+          events=week.get('events',[])
+          chosen=next((event for event in events if event.get('status',{}).get('type',{}).get('completed')),events[0] if events else {})
+          event_id=str(chosen.get('id',''))
+          if event_id.isdigit():get('summary','summary?event='+event_id,trim=['header','boxscore'])
+          (out/'report.json').write_text(json.dumps(report,indent=2))
+          print(json.dumps(report,indent=2))
+          PY
+      - name: Preserve public feed contracts for application testing
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'AVERO feed validation'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          parent=''
+          if git ls-remote --exit-code --heads origin refs/heads/provider-contract >/dev/null; then
+            git fetch --no-tags origin refs/heads/provider-contract
+            parent="$(git rev-parse FETCH_HEAD)"
+          fi
+          export GIT_INDEX_FILE="$RUNNER_TEMP/avero-feed-index"
+          git --work-tree="$GITHUB_WORKSPACE/probe-output" read-tree --empty
+          mapfile -t files < <(find probe-output -type f -printf '%P\n' | sort)
+          git --work-tree="$GITHUB_WORKSPACE/probe-output" add --force -- "${files[@]}"
+          tree="$(git write-tree)"
+          if [ -n "$parent" ]; then
+            commit="$(printf '%s\n' 'Verify free live scoreboard and player-stat contracts' | git commit-tree "$tree" -p "$parent")"
+          else
+            commit="$(printf '%s\n' 'Verify free live scoreboard and player-stat contracts' | git commit-tree "$tree")"
+          fi
+          git push origin "$commit:refs/heads/provider-contract"
