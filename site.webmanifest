@@ -1,0 +1,17 @@
+{
+  "name": "Upright · Sports Intelligence",
+  "short_name": "Upright",
+  "description": "Live games, measured forecasts, and player intelligence.",
+  "id": "./",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#07111F",
+  "theme_color": "#07111F",
+  "icons": [
+    {"src":"upright.svg","sizes":"any","type":"image/svg+xml","purpose":"any"},
+    {"src":"upright-192.png","sizes":"192x192","type":"image/png","purpose":"any"},
+    {"src":"upright-512.png","sizes":"512x512","type":"image/png","purpose":"any"},
+    {"src":"upright-maskable-512.png","sizes":"512x512","type":"image/png","purpose":"maskable"}
+  ]
+}
